@@ -28,3 +28,12 @@ Then visit `http://localhost:8080`.
 - Persist changes locally in browser storage
 
 The coworker sharing experience is simulated locally in this first version. A production version would connect it to employee identity, a database, and real-time notifications.
+
+## Deployment
+
+- GitHub: https://github.com/cturba04/GBXOne
+- Live site: https://ambitious-pond-008f1ce0f.1.azurestaticapps.net/
+- Azure Static Web App: `gbxone-cturba` (Free tier)
+- Resource group: `rg-gbxone-cturba`
+
+Pushing to `main` runs `.github/workflows/azure-static-web-apps.yml`, validates the JavaScript, and deploys the site. The Azure deployment token is stored in the GitHub Actions secret `AZURE_STATIC_WEB_APPS_API_TOKEN`.
