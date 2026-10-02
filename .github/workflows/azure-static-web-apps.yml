@@ -16,7 +16,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
       - name: Validate JavaScript
         run: node --check app.js
       - name: Prepare site
@@ -33,4 +33,3 @@ jobs:
           api_location: ""
           output_location: ""
           skip_app_build: true
-          skip_api_build: true
