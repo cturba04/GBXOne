@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="GBX One — a customizable launchpad for tools, apps, reports, and shared links." />
+    <title>GBX One — Your work, one place</title>
+    <link rel="icon" type="image/svg+xml" href="assets/thumbtack-logo-v7.svg" />
+    <link rel="stylesheet" href="styles.css?v=20260827-clean-board-menu" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Primary navigation">
+        <a class="brand" href="#" aria-label="GBX One home">
+          <img class="brand-logo" src="assets/thumbtack-logo-v7.svg" alt="" />
+          <span class="brand-wordmark"><strong>GBX</strong><small>ONE</small></span>
+        </a>
+
+        <nav class="nav-list">
+          <button class="nav-item active" data-filter="all"><span class="nav-icon">⌂</span><span>My launchpad</span></button>
+        </nav>
+
+        <div class="sidebar-section">
+          <div class="sidebar-label">Collections</div>
+          <div id="collectionNav" class="collection-nav"></div>
+          <button id="newCollectionSide" class="text-button"><span>＋</span> New collection</button>
+        </div>
+
+        <div class="sidebar-footer">
+          <button id="customizeBtn" class="nav-item"><span class="nav-icon">⚙</span><span>Admin center</span></button>
+          <div class="help-card">
+            <span class="help-icon">?</span>
+            <div><strong>Need a hand?</strong><small>Learn how GBX One works</small></div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <div class="mobile-brand">
+            <img src="assets/thumbtack-logo-v7.svg" alt="" />
+            <span>GBX</span> ONE
+          </div>
+          <label class="search-wrap" for="globalSearch">
+            <span class="search-icon">⌕</span>
+            <input id="globalSearch" type="search" placeholder="Search apps, links, notes, or tags…" autocomplete="off" />
+            <kbd>⌘ K</kbd>
+          </label>
+          <div class="header-actions">
+            <button id="notificationBtn" class="icon-button notification-button" aria-label="Open shared items">
+              <span>♢</span><span id="notificationBadge" class="notification-badge">2</span>
+            </button>
+            <button class="profile-button" aria-label="Open profile menu">
+              <span class="avatar">MW</span>
+              <span class="profile-copy"><strong>Michelle Wilson</strong><small>GBX Group</small></span>
+              <span class="chevron">⌄</span>
+            </button>
+          </div>
+        </header>
+
+        <div class="page-content">
+          <section class="welcome-row">
+            <div>
+              <p class="eyebrow">FRIDAY, JULY 17</p>
+              <h1>Good afternoon, Michelle.</h1>
+            </div>
+            <div class="primary-actions">
+              <button id="newCollectionBtn" class="button secondary"><span>＋</span> Collection</button>
+              <button id="addLinkBtn" class="button primary"><span>＋</span> Add link</button>
+            </div>
+          </section>
+
+          <section id="announcement" class="announcement" aria-label="Company announcement">
+            <div class="announcement-mark">GBX</div>
+            <div class="announcement-copy">
+              <span class="announcement-label">COMPANY UPDATE</span>
+              <strong id="announcementTitle">Quarterly Impact Forum is next Thursday at 10:00 AM.</strong>
+              <span id="announcementDetails">Join us in the Foundry or on Teams.</span>
+            </div>
+            <button id="announcementLink" class="announcement-link">View details <span>→</span></button>
+            <button id="dismissAnnouncement" class="dismiss" aria-label="Dismiss announcement">×</button>
+          </section>
+
+          <section class="board-toolbar">
+            <div class="board-title">
+              <h2 id="boardTitle">My launchpad</h2>
+              <span id="itemCount" class="item-count"></span>
+            </div>
+            <div class="toolbar-actions">
+              <span id="sortHint" class="sort-hint">Drag tiles to organize</span>
+              <div class="workspace-view-switch" aria-label="Choose workspace view">
+                <button class="workspace-view-button active" type="button" data-workspace-view="launchpad">Launchpad</button>
+                <button class="workspace-view-button" type="button" data-workspace-view="board">Board</button>
+              </div>
+              <button id="organizeBtn" class="button tertiary">Organize</button>
+            </div>
+          </section>
+
+          <div id="boardModeHelp" class="board-mode-help" hidden>
+            <span>Board view</span>
+            Drag collections freely across the board. They snap to an alignment grid when moved or resized, and your arrangement saves automatically.
+          </div>
+
+          <div id="searchStatus" class="search-status" hidden></div>
+          <div id="board" class="board view-grid" aria-live="polite"></div>
+
+          <div id="emptyState" class="empty-state" hidden>
+            <div class="empty-symbol">⌕</div>
+            <h3>No links found</h3>
+            <p>Try another search or add a new link to your launchpad.</p>
+            <button class="button primary" data-action="add-link">Add a link</button>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <div id="toastRegion" class="toast-region" aria-live="polite"></div>
+
+    <dialog id="linkDialog" class="modal">
+      <form id="linkForm" method="dialog">
+        <div class="modal-header">
+          <div><span class="modal-kicker">CREATE</span><h2 id="linkDialogTitle">Add a link</h2></div>
+          <button type="button" class="modal-close" data-close="linkDialog" aria-label="Close">×</button>
+        </div>
+        <input id="editId" type="hidden" />
+        <label class="field"><span>Name</span><input id="linkName" required maxlength="55" placeholder="e.g. Draw Request Center" /></label>
+        <label class="field"><span>Web address</span><input id="linkUrl" type="url" required placeholder="https://" /></label>
+        <label class="field"><span>Logo image <small>Optional — leave blank to use the site’s icon</small></span><input id="linkLogo" type="url" placeholder="https://example.com/logo.png" /></label>
+        <div class="field-row">
+          <label class="field"><span>Collection</span><select id="linkCollection"></select></label>
+          <label class="field"><span>Tile color</span><select id="linkColor">
+            <option value="navy">Deep navy</option><option value="teal">Lake teal</option><option value="rust">Brick</option>
+            <option value="sage">Sage</option><option value="gold">Warm gold</option><option value="plum">Plum</option>
+          </select></label>
+        </div>
+        <label class="field"><span>Tags <small>Separate with commas</small></span><input id="linkTags" placeholder="reports, approvals, zoho" /></label>
+        <label class="field"><span>Notes</span><textarea id="linkNotes" rows="3" placeholder="Add context, a reminder, or helpful instructions…"></textarea></label>
+        <div class="modal-actions">
+          <button type="button" class="button secondary" data-close="linkDialog">Cancel</button>
+          <button type="submit" class="button primary">Save link</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="collectionDialog" class="modal small-modal">
+      <form id="collectionForm" method="dialog">
+        <div class="modal-header">
+          <div><span class="modal-kicker">ORGANIZE</span><h2>New collection</h2></div>
+          <button type="button" class="modal-close" data-close="collectionDialog" aria-label="Close">×</button>
+        </div>
+        <label class="field"><span>Collection name</span><input id="collectionName" required maxlength="35" placeholder="e.g. Monthly reporting" /></label>
+        <label class="field"><span>Accent color</span><select id="collectionColor">
+          <option value="#2f5962">Lake teal</option><option value="#b95f3b">Brick</option><option value="#c59a46">Warm gold</option>
+          <option value="#6b806a">Sage</option><option value="#2e4057">Deep navy</option><option value="#76506a">Plum</option>
+        </select></label>
+        <div class="modal-actions">
+          <button type="button" class="button secondary" data-close="collectionDialog">Cancel</button>
+          <button type="submit" class="button primary">Create collection</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="shareDialog" class="modal small-modal">
+      <form id="shareForm" method="dialog">
+        <div class="modal-header">
+          <div><span class="modal-kicker">SHARE</span><h2 id="shareDialogTitle">Send to a coworker</h2></div>
+          <button type="button" class="modal-close" data-close="shareDialog" aria-label="Close">×</button>
+        </div>
+        <div id="sharePreview" class="share-preview"></div>
+        <input id="shareItemId" type="hidden" />
+        <input id="shareCollectionId" type="hidden" />
+        <label class="field"><span>Coworker</span><select id="sharePerson" required>
+          <option value="">Choose a person…</option><option>Alex Morgan</option><option>Jamie Chen</option><option>Priya Shah</option><option>Sam Rivera</option>
+        </select></label>
+        <label class="field"><span>Add a message <small>Optional</small></span><textarea id="shareMessage" rows="3" placeholder="Thought this might be helpful…"></textarea></label>
+        <div class="modal-actions">
+          <button type="button" class="button secondary" data-close="shareDialog">Cancel</button>
+          <button type="submit" class="button primary">Send link</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="adminDialog" class="modal admin-modal">
+      <div class="admin-shell">
+        <div class="modal-header admin-header">
+          <div><span class="modal-kicker">GBX ONE</span><h2>Admin center</h2><p>Manage what employees see on their launchpad.</p></div>
+          <button type="button" class="modal-close" data-close="adminDialog" aria-label="Close admin center">×</button>
+        </div>
+
+        <div class="admin-metrics" aria-label="Admin summary">
+          <div><strong id="adminAppCount">0</strong><span>Live apps</span></div>
+          <div><strong id="adminScheduledCount">0</strong><span>Scheduled</span></div>
+          <div><strong>All</strong><span>Default audience</span></div>
+        </div>
+
+        <div class="admin-tabs" role="tablist" aria-label="Admin sections">
+          <button class="admin-tab active" type="button" role="tab" aria-selected="true" data-admin-tab="apps">Apps &amp; links</button>
+          <button class="admin-tab" type="button" role="tab" aria-selected="false" data-admin-tab="announcements">Announcements</button>
+        </div>
+
+        <section class="admin-panel active" data-admin-panel="apps" role="tabpanel">
+          <div class="admin-panel-heading"><div><span class="modal-kicker">DEPLOY</span><h3>Publish an app or link</h3></div><p>Add a destination to employee launchpads without asking each person to configure it.</p></div>
+          <form id="adminAppForm" class="admin-form">
+            <div class="field-row">
+              <label class="field"><span>App name</span><input id="adminAppName" required maxlength="55" placeholder="e.g. Benefits portal" /></label>
+              <label class="field"><span>Destination URL</span><input id="adminAppUrl" type="url" required placeholder="https://" /></label>
+            </div>
+            <div class="field-row admin-three-fields">
+              <label class="field"><span>Collection</span><select id="adminAppCollection"></select></label>
+              <label class="field"><span>Audience</span><select id="adminAppAudience"><option>Everyone</option><option>All employees</option><option>Managers</option><option>Deal teams</option><option>Operations</option></select></label>
+              <label class="field"><span>Accent</span><select id="adminAppColor"><option value="teal">Lake teal</option><option value="navy">Deep navy</option><option value="rust">Brick</option><option value="sage">Sage</option><option value="gold">Warm gold</option><option value="plum">Plum</option></select></label>
+            </div>
+            <label class="field"><span>Logo URL <small>Optional</small></span><input id="adminAppLogo" type="url" placeholder="https://example.com/logo.png" /></label>
+            <label class="field"><span>Description</span><input id="adminAppNotes" maxlength="120" placeholder="Help employees understand when to use it" /></label>
+            <div class="admin-form-actions"><span>Employees will see the app immediately in this prototype.</span><button class="button primary" type="submit">Deploy app</button></div>
+          </form>
+          <div class="admin-list-heading"><h3>Current app library</h3><span id="adminLibraryCount"></span></div>
+          <div id="adminAppList" class="admin-list"></div>
+        </section>
+
+        <section class="admin-panel" data-admin-panel="announcements" role="tabpanel" hidden>
+          <div class="admin-panel-heading"><div><span class="modal-kicker">COMMUNICATE</span><h3>Send an announcement</h3></div><p>Publish immediately or choose when the message should appear.</p></div>
+          <form id="announcementForm" class="admin-form">
+            <label class="field"><span>Headline</span><input id="adminAnnouncementTitle" required maxlength="95" placeholder="What should employees know?" /></label>
+            <label class="field"><span>Supporting details</span><input id="adminAnnouncementDetails" maxlength="140" placeholder="Add a time, place, or concise next step" /></label>
+            <div class="field-row admin-three-fields">
+              <label class="field"><span>Audience</span><select id="adminAnnouncementAudience"><option>Everyone</option><option>All employees</option><option>Managers</option><option>Deal teams</option><option>Operations</option></select></label>
+              <label class="field"><span>Delivery</span><select id="adminAnnouncementDelivery"><option value="now">Send now</option><option value="scheduled">Schedule</option></select></label>
+              <label id="scheduleField" class="field" hidden><span>Send date &amp; time</span><input id="adminAnnouncementSendAt" type="datetime-local" /></label>
+            </div>
+            <div class="field-row">
+              <label class="field"><span>Action label <small>Optional</small></span><input id="adminAnnouncementAction" maxlength="30" placeholder="View details" /></label>
+              <label class="field"><span>Action URL <small>Optional</small></span><input id="adminAnnouncementUrl" type="url" placeholder="https://" /></label>
+            </div>
+            <div class="admin-form-actions"><span id="announcementDeliveryHint">This message will appear as soon as you send it.</span><button id="announcementSubmit" class="button primary" type="submit">Send announcement</button></div>
+          </form>
+          <div class="admin-list-heading"><h3>Announcement activity</h3><span>Newest first</span></div>
+          <div id="adminAnnouncementList" class="admin-list"></div>
+        </section>
+      </div>
+    </dialog>
+
+    <aside id="notificationPanel" class="notification-panel" aria-hidden="true">
+      <div class="panel-header">
+        <div><span class="modal-kicker">INBOX</span><h2>Shared with you</h2></div>
+        <button id="closeNotifications" class="modal-close" aria-label="Close notifications">×</button>
+      </div>
+      <p class="panel-intro">Coworkers can share useful apps and links directly to your launchpad.</p>
+      <div id="shareRequests" class="share-requests"></div>
+    </aside>
+    <div id="panelScrim" class="panel-scrim"></div>
+
+    <script src="app.js?v=20260827-snap-board-20"></script>
+  </body>
+</html>

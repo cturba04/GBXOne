@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
+  <title id="title">Coral thumbtack</title>
+  <g fill="#D97957" transform="rotate(24 64 64)">
+    <rect x="26" y="14" width="76" height="24" rx="12" />
+    <rect x="52" y="34" width="24" height="25" rx="4" />
+    <path d="M48 55h32l10 15c3 5 0 9-6 9H70l-4 38c-.5 5-3.5 5-4 0l-4-38H44c-6 0-9-4-6-9l10-15Z" />
+  </g>
+</svg>
