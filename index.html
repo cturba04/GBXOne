@@ -6,7 +6,7 @@
     <meta name="description" content="GBX One — a customizable launchpad for tools, apps, reports, and shared links." />
     <title>GBX One — Your work, one place</title>
     <link rel="icon" type="image/svg+xml" href="assets/thumbtack-logo-v7.svg" />
-    <link rel="stylesheet" href="styles.css?v=20261002-board-refresh" />
+    <link rel="stylesheet" href="styles.css?v=20261002-management" />
   </head>
   <body>
     <div class="app-shell">
@@ -93,6 +93,7 @@
                 <button class="workspace-view-button" type="button" data-workspace-view="board">Board</button>
               </div>
               <button id="organizeBtn" class="button tertiary">Organize</button>
+              <button id="editLaunchpadBtn" class="button secondary" type="button">Edit my launchpad</button>
             </div>
           </section>
 
@@ -184,24 +185,26 @@
     <dialog id="adminDialog" class="modal admin-modal">
       <div class="admin-shell">
         <div class="modal-header admin-header">
-          <div><span class="modal-kicker">GBX ONE</span><h2>Admin center</h2><p>Manage what employees see on their launchpad.</p></div>
+          <div><span class="modal-kicker">GBX ONE</span><h2>Admin center</h2><p>Manage the GBX app library and announcements.</p></div>
           <button type="button" class="modal-close" data-close="adminDialog" aria-label="Close admin center">×</button>
         </div>
 
         <div class="admin-metrics" aria-label="Admin summary">
           <div><strong id="adminAppCount">0</strong><span>Live apps</span></div>
           <div><strong id="adminScheduledCount">0</strong><span>Scheduled</span></div>
-          <div><strong>All</strong><span>Default audience</span></div>
+          <div><strong id="adminDefaultAudience">Everyone</strong><span>Default audience</span></div>
         </div>
 
         <div class="admin-tabs" role="tablist" aria-label="Admin sections">
+          <button class="admin-tab" type="button" role="tab" aria-selected="false" data-admin-tab="setup">Admin setup</button>
           <button class="admin-tab active" type="button" role="tab" aria-selected="true" data-admin-tab="apps">Apps &amp; links</button>
           <button class="admin-tab" type="button" role="tab" aria-selected="false" data-admin-tab="announcements">Announcements</button>
         </div>
 
         <section class="admin-panel active" data-admin-panel="apps" role="tabpanel">
-          <div class="admin-panel-heading"><div><span class="modal-kicker">DEPLOY</span><h3>Publish an app or link</h3></div><p>Add a destination to employee launchpads without asking each person to configure it.</p></div>
+          <div class="admin-panel-heading"><div><span class="modal-kicker">PUBLISH</span><h3>Publish an app or link</h3></div><p>Add a destination to the GBX app library.</p></div>
           <form id="adminAppForm" class="admin-form">
+            <input id="adminEditId" type="hidden" />
             <div class="field-row">
               <label class="field"><span>App name</span><input id="adminAppName" required maxlength="55" placeholder="e.g. Benefits portal" /></label>
               <label class="field"><span>Destination URL</span><input id="adminAppUrl" type="url" required placeholder="https://" /></label>
@@ -213,7 +216,10 @@
             </div>
             <label class="field"><span>Logo URL <small>Optional</small></span><input id="adminAppLogo" type="url" placeholder="https://example.com/logo.png" /></label>
             <label class="field"><span>Description</span><input id="adminAppNotes" maxlength="120" placeholder="Help employees understand when to use it" /></label>
-            <div class="admin-form-actions"><span>Employees will see the app immediately in this prototype.</span><button class="button primary" type="submit">Deploy app</button></div>
+            <label class="field"><span>Admin tags <small>Separate with commas</small></span><input id="adminAppTags" list="adminTagOptions" placeholder="HR, Benefits, Internal" /></label>
+            <datalist id="adminTagOptions"></datalist>
+            <label class="check-field"><input id="adminAppAnnounce" type="checkbox" /> Announce this app when published or updated</label>
+            <div class="admin-form-actions"><span>Changes are saved in this browser.</span><button id="cancelAdminEdit" class="button secondary" type="button" hidden>Cancel edit</button><button id="adminAppSubmit" class="button primary" type="submit">Publish app</button></div>
           </form>
           <div class="admin-list-heading"><h3>Current app library</h3><span id="adminLibraryCount"></span></div>
           <div id="adminAppList" class="admin-list"></div>
@@ -222,8 +228,9 @@
         <section class="admin-panel" data-admin-panel="announcements" role="tabpanel" hidden>
           <div class="admin-panel-heading"><div><span class="modal-kicker">COMMUNICATE</span><h3>Send an announcement</h3></div><p>Publish immediately or choose when the message should appear.</p></div>
           <form id="announcementForm" class="admin-form">
+            <label class="field"><span>Related app <small>Optional</small></span><select id="adminAnnouncementApp"><option value="">General announcement</option></select></label>
             <label class="field"><span>Headline</span><input id="adminAnnouncementTitle" required maxlength="95" placeholder="What should employees know?" /></label>
-            <label class="field"><span>Supporting details</span><input id="adminAnnouncementDetails" maxlength="140" placeholder="Add a time, place, or concise next step" /></label>
+            <label class="field"><span>Supporting details</span><textarea id="adminAnnouncementDetails" rows="4" maxlength="2000" placeholder="Explain the update and what employees need to know"></textarea></label>
             <div class="field-row admin-three-fields">
               <label class="field"><span>Audience</span><select id="adminAnnouncementAudience"><option>Everyone</option><option>All employees</option><option>Managers</option><option>Deal teams</option><option>Operations</option></select></label>
               <label class="field"><span>Delivery</span><select id="adminAnnouncementDelivery"><option value="now">Send now</option><option value="scheduled">Schedule</option></select></label>
@@ -233,10 +240,20 @@
               <label class="field"><span>Action label <small>Optional</small></span><input id="adminAnnouncementAction" maxlength="30" placeholder="View details" /></label>
               <label class="field"><span>Action URL <small>Optional</small></span><input id="adminAnnouncementUrl" type="url" placeholder="https://" /></label>
             </div>
+            <label class="check-field"><input id="adminAnnouncementRequired" type="checkbox" checked /> Require users to read and acknowledge before dismissing</label>
             <div class="admin-form-actions"><span id="announcementDeliveryHint">This message will appear as soon as you send it.</span><button id="announcementSubmit" class="button primary" type="submit">Send announcement</button></div>
           </form>
           <div class="admin-list-heading"><h3>Announcement activity</h3><span>Newest first</span></div>
           <div id="adminAnnouncementList" class="admin-list"></div>
+        </section>
+        <section class="admin-panel" data-admin-panel="setup" role="tabpanel" hidden>
+          <div class="admin-panel-heading"><div><span class="modal-kicker">CONFIGURE</span><h3>Admin setup</h3></div><p>Set publishing defaults and reusable catalog tags.</p></div>
+          <form id="adminSetupForm" class="admin-form">
+            <div class="field-row"><label class="field"><span>Organization name</span><input id="setupOrganization" required maxlength="60" /></label><label class="field"><span>Default audience</span><select id="setupAudience"><option>Everyone</option><option>All employees</option><option>Managers</option><option>Deal teams</option><option>Operations</option></select></label></div>
+            <label class="field"><span>Suggested admin tags <small>Separate with commas</small></span><textarea id="setupTags" rows="3"></textarea></label>
+            <label class="check-field"><input id="setupRequireAcknowledgement" type="checkbox" /> Require acknowledgement for general announcements by default</label>
+            <div class="admin-form-actions"><span>These settings apply to new publications in this browser.</span><button class="button primary" type="submit">Save settings</button></div>
+          </form>
         </section>
       </div>
     </dialog>
@@ -251,6 +268,18 @@
     </aside>
     <div id="panelScrim" class="panel-scrim"></div>
 
-    <script src="app.js?v=20261002-board-refresh"></script>
+    <dialog id="userEditDialog" class="modal admin-modal">
+      <div class="admin-shell">
+        <div class="modal-header"><div><span class="modal-kicker">YOUR WORKSPACE</span><h2>Edit my launchpad</h2><p class="management-intro">Select links or entire collections. Hide any item, or delete links and collections you created.</p></div><button type="button" class="modal-close" data-close="userEditDialog" aria-label="Close launchpad editor">×</button></div>
+        <div class="selection-toolbar"><label class="check-field"><input id="selectAllLinks" type="checkbox" /> Select all</label><span id="selectionSummary">Nothing selected</span></div>
+        <div id="userEditList" class="user-edit-list"></div>
+        <div class="selection-actions"><p id="deleteSelectionHint">GBX links can be hidden, but only your own links can be deleted.</p><div><button id="showSelected" class="button secondary" type="button" disabled>Show selected</button><button id="hideSelected" class="button secondary" type="button" disabled>Hide selected</button><button id="deleteSelected" class="button danger-button" type="button" disabled>Delete selected</button></div></div>
+      </div>
+    </dialog>
+    <dialog id="requiredAnnouncementDialog" class="modal small-modal" aria-labelledby="requiredAnnouncementTitle">
+      <div class="acknowledgement-body"><span class="modal-kicker">PLEASE READ</span><h2 id="requiredAnnouncementTitle"></h2><p id="requiredAnnouncementDetails"></p><a id="requiredAnnouncementLink" target="_blank" rel="noopener noreferrer" hidden>View app details ↗</a><label class="check-field"><input id="announcementRead" type="checkbox" /> I have read and understood this announcement</label><button id="acknowledgeAnnouncement" class="button primary" type="button" disabled>Acknowledge and continue</button><small id="acknowledgementProgress"></small></div>
+    </dialog>
+    <script src="app.js?v=20261002-management"></script>
+    <script src="management.js?v=20261002-management"></script>
   </body>
 </html>

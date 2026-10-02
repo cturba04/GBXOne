@@ -88,6 +88,10 @@ catch { state = structuredClone(seed); }
 if (!Array.isArray(state.announcements)) state.announcements = structuredClone(seed.announcements);
 if (!Array.isArray(state.catalogDrafts)) state.catalogDrafts = structuredClone(seed.catalogDrafts);
 if (!Array.isArray(state.deletedCollectionIds)) state.deletedCollectionIds = [];
+for (const key of ['hiddenItemIds', 'hiddenCollectionIds', 'deletedManagedItemIds', 'acknowledgedAnnouncementIds']) {
+  if (!Array.isArray(state[key])) state[key] = [];
+}
+state.adminSettings = { organization: 'GBX', defaultAudience: 'Everyone', tags: ['HR', 'Tax', 'Finance', 'Projects'], requireAcknowledgement: true, ...state.adminSettings };
 if (!state.collectionLayouts || typeof state.collectionLayouts !== 'object') state.collectionLayouts = {};
 if (!['launchpad', 'board'].includes(state.workspaceView)) state.workspaceView = 'launchpad';
 if (storedState?.boardLayoutVersion !== seed.boardLayoutVersion) {
@@ -100,7 +104,14 @@ seed.collections.filter(collection => managedCollectionIds.has(collection.id)).f
 });
 const managedItemIds = new Set(['form-8283-generator', 'nova', 'bd-app', 'project-wires-archive']);
 seed.items.filter(item => managedItemIds.has(item.id)).forEach(item => {
-  if (!state.items.some(existing => existing.id === item.id)) state.items.push(structuredClone(item));
+  if (!state.deletedManagedItemIds.includes(item.id) && !state.items.some(existing => existing.id === item.id)) state.items.push(structuredClone(item));
+});
+state.items.forEach(item => {
+  if (!item.owner) item.owner = item.id.startsWith('item-') ? 'user' : (seed.items.some(entry => entry.id === item.id) || item.managed ? 'gbx' : 'shared');
+  if (item.owner === 'gbx') item.managed = true;
+});
+state.collections.forEach(collection => {
+  if (!collection.owner) collection.owner = collection.id.startsWith('collection-') ? 'user' : 'gbx';
 });
 localStorage.setItem('gbx-one-state', JSON.stringify(state));
 if (!state.collections.some(collection => collection.id === 'favorites')) {
@@ -175,6 +186,7 @@ function renderAnnouncement() {
   link.innerHTML = `${escapeHtml(announcement.actionLabel || 'View details')} <span>→</span>`;
   link.hidden = !announcement.actionUrl;
   link.dataset.url = announcement.actionUrl || '';
+  document.querySelector('#dismissAnnouncement').hidden = Boolean(announcement.requireAcknowledgement && !state.acknowledgedAnnouncementIds.includes(announcement.id));
 }
 
 function setAdminTab(name) {
@@ -208,7 +220,11 @@ function renderAdmin() {
         <span class="admin-list-icon" style="--item-color:${COLORS[item.color] || item.color || COLORS.teal}">${escapeHtml(initials(item.name))}</span>
         <span class="admin-list-copy"><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(collection?.name || 'Unassigned')} · ${escapeHtml(audience)}</small></span>
       </div>
-      <span class="status-pill">${item.managed ? 'Deployed' : 'Live'}</span>
+      <div class="admin-row-actions">
+        <span class="status-pill">${item.owner === 'user' ? 'Personal' : 'GBX'}</span>
+        ${item.owner === 'gbx' ? `<button type="button" class="button secondary" data-management="admin-edit" data-id="${item.id}">Edit</button><button type="button" class="button secondary" data-management="admin-announce" data-id="${item.id}">Announce</button><button type="button" class="button danger-button" data-management="admin-delete" data-id="${item.id}">Delete</button>` : ''}
+      </div>
+      ${(item.tags || []).length ? `<div class="admin-tags">${item.tags.map(tag => `<span>${escapeHtml(tag)}</span>`).join('')}</div>` : ''}
     </div>`;
   }).join('');
   const draftAppRows = state.catalogDrafts.map(item => {
@@ -231,19 +247,21 @@ function renderAdmin() {
         <span class="admin-list-icon" style="--item-color:${announcement.status === 'scheduled' ? COLORS.gold : COLORS.teal}">A</span>
         <span class="admin-list-copy"><strong>${escapeHtml(announcement.title)}</strong><small>${escapeHtml(announcement.audience)} · ${escapeHtml(when)}</small></span>
       </div>
-      <span class="status-pill ${announcement.status === 'scheduled' ? 'scheduled' : ''}">${escapeHtml(announcement.status)}</span>
+      <div class="admin-row-actions"><span class="status-pill ${announcement.status === 'scheduled' ? 'scheduled' : ''}">${escapeHtml(announcement.status)}</span><button type="button" class="button danger-button" data-management="delete-announcement" data-id="${announcement.id}">Delete</button></div>
     </div>`;
   }).join('') : '<div class="admin-empty">No announcements have been created yet.</div>';
 }
 
 function openAdminDialog() {
   renderAdmin();
+  if (typeof prepareAdminSettings === 'function') prepareAdminSettings();
   setAdminTab('apps');
   document.querySelector('#adminDialog').showModal();
 }
 
 function filteredItems() {
   return state.items.filter(item => {
+    if (state.hiddenItemIds.includes(item.id) || state.hiddenCollectionIds.includes(item.collection)) return false;
     const haystack = [item.name, item.notes, item.url, ...(item.tags || [])].join(' ').toLowerCase();
     const matchesQuery = !query || haystack.includes(query.toLowerCase());
     const matchesCollection = !activeCollection || item.collection === activeCollection;
@@ -539,7 +557,7 @@ function bindCollectionBoardInteractions() {
 function render() {
   renderNav();
   const items = filteredItems();
-  const visibleCollections = state.collections.filter(collection => !activeCollection || collection.id === activeCollection);
+  const visibleCollections = state.collections.filter(collection => !state.hiddenCollectionIds.includes(collection.id) && (!activeCollection || collection.id === activeCollection));
   const boardView = state.workspaceView === 'board';
   document.body.classList.toggle('workspace-board-active', boardView);
   board.className = `board view-${state.view}${boardView ? ' board-mode' : ''}`;
@@ -559,8 +577,8 @@ function render() {
           <div class="collection-menu-wrap">
             <button class="collection-menu" data-action="toggle-collection-menu" data-id="${collection.id}" aria-label="Open menu for ${escapeHtml(collection.name)}">•••</button>
             <div class="collection-menu-popover" data-collection-menu="${collection.id}" hidden>
-              <button type="button" data-action="rename-collection" data-id="${collection.id}">Rename</button>
-              ${collection.id === 'favorites' ? '' : `<button type="button" class="danger" data-action="delete-collection" data-id="${collection.id}">Delete</button>`}
+              <button type="button" data-management="hide-collection" data-id="${collection.id}">Hide collection</button>
+              ${collection.owner === 'user' ? `<button type="button" data-action="rename-collection" data-id="${collection.id}">Rename</button><button type="button" class="danger" data-action="delete-collection" data-id="${collection.id}">Delete</button>` : ''}
             </div>
           </div>
         </header>
@@ -600,6 +618,7 @@ function render() {
     bindCollectionBoardInteractions();
   }
   renderRequests();
+  if (typeof presentRequiredAnnouncement === 'function') queueMicrotask(presentRequiredAnnouncement);
 }
 
 function tileTemplate(item) {
@@ -633,7 +652,7 @@ function tileTemplate(item) {
 }
 
 function renderNav() {
-  collectionNav.innerHTML = state.collections.map(collection => `
+  collectionNav.innerHTML = state.collections.filter(collection => !state.hiddenCollectionIds.includes(collection.id)).map(collection => `
     <button class="nav-item ${activeCollection === collection.id ? 'active' : ''}" data-collection-filter="${collection.id}">
       <span class="collection-dot" style="background:${collection.color}"></span><span>${escapeHtml(collection.name)}</span>
     </button>`).join('');
@@ -678,6 +697,7 @@ function bindDragAndDrop() {
 }
 
 function openLinkDialog(item = null, collectionId = null) {
+  if (item && item.owner !== 'user') { toast('GBX links can be hidden. Use Admin center to edit published links.'); return; }
   document.querySelector('#linkDialogTitle').textContent = item ? 'Edit link' : 'Add a link';
   document.querySelector('#editId').value = item?.id || '';
   document.querySelector('#linkName').value = item?.name || '';
@@ -751,12 +771,13 @@ document.addEventListener('click', event => {
   if (action.dataset.action === 'open' && item) window.open(item.url, '_blank', 'noopener,noreferrer');
   if (action.dataset.action === 'rename-collection') {
     const collection = state.collections.find(entry => entry.id === action.dataset.id);
+    if (!collection || collection.owner !== 'user') return;
     const name = prompt('Rename this collection', collection.name);
     if (name?.trim()) { collection.name = name.trim(); save(); render(); toast('Collection renamed'); }
   }
   if (action.dataset.action === 'delete-collection') {
     const collection = state.collections.find(entry => entry.id === action.dataset.id);
-    if (!collection || collection.id === 'favorites') return;
+    if (!collection || collection.owner !== 'user') return;
     const appCount = state.items.filter(entry => entry.collection === collection.id).length;
     const message = appCount
       ? `Delete ${collection.name}? Its ${appCount} ${appCount === 1 ? 'app' : 'apps'} will move to Favorites.`
@@ -824,27 +845,35 @@ document.querySelector('#adminAnnouncementDelivery').addEventListener('change', 
 document.querySelector('#adminAppForm').addEventListener('submit', event => {
   event.preventDefault();
   const name = document.querySelector('#adminAppName').value.trim();
-  state.items.push({
-    id: `managed-${Date.now()}`,
+  const editingId = document.querySelector('#adminEditId').value;
+  const existing = state.items.find(item => item.id === editingId && item.owner === 'gbx');
+  if (editingId && !existing) return;
+  const publishedItem = {
+    id: existing?.id || `managed-${crypto.randomUUID()}`,
     name,
     url: document.querySelector('#adminAppUrl').value.trim(),
     logo: document.querySelector('#adminAppLogo').value.trim(),
     collection: document.querySelector('#adminAppCollection').value,
     color: document.querySelector('#adminAppColor').value,
-    tags: ['Admin deployed'],
+    tags: document.querySelector('#adminAppTags').value.split(',').map(tag => tag.trim()).filter(Boolean),
     notes: document.querySelector('#adminAppNotes').value.trim(),
-    favorite: false,
-    shared: false,
+    favorite: existing?.favorite || false,
+    shared: existing?.shared || false,
     icon: initials(name),
     managed: true,
+    owner: 'gbx',
     deploymentAudience: document.querySelector('#adminAppAudience').value,
     deployedAt: new Date().toISOString()
-  });
+  };
+  if (existing) Object.assign(existing, publishedItem);
+  else state.items.push(publishedItem);
+  if (document.querySelector('#adminAppAnnounce').checked) createAppAnnouncement(publishedItem);
   save();
   event.currentTarget.reset();
+  resetAdminAppForm();
   render();
   renderAdmin();
-  toast(`${name} deployed to employee launchpads`);
+  toast(`${name} ${existing ? 'updated' : 'published'}`);
 });
 
 document.querySelector('#announcementForm').addEventListener('submit', event => {
@@ -858,6 +887,8 @@ document.querySelector('#announcementForm').addEventListener('submit', event => 
     title,
     details: document.querySelector('#adminAnnouncementDetails').value.trim(),
     audience: document.querySelector('#adminAnnouncementAudience').value,
+    appId: document.querySelector('#adminAnnouncementApp').value || null,
+    requireAcknowledgement: Boolean(document.querySelector('#adminAnnouncementApp').value) || document.querySelector('#adminAnnouncementRequired').checked,
     status: scheduled ? 'scheduled' : 'sent',
     sendAt: scheduled ? sendAt : null,
     sentAt: scheduled ? null : new Date().toISOString(),
@@ -870,6 +901,8 @@ document.querySelector('#announcementForm').addEventListener('submit', event => 
   document.querySelector('#scheduleField').hidden = true;
   document.querySelector('#adminAnnouncementSendAt').required = false;
   document.querySelector('#announcementSubmit').textContent = 'Send announcement';
+  document.querySelector('#adminAnnouncementRequired').disabled = false;
+  document.querySelector('#adminAnnouncementRequired').checked = state.adminSettings.requireAcknowledgement;
   document.querySelector('#announcementDeliveryHint').textContent = 'This message will appear as soon as you send it.';
   render();
   renderAdmin();
@@ -878,6 +911,7 @@ document.querySelector('#announcementForm').addEventListener('submit', event => 
 
 document.querySelector('#linkForm').addEventListener('submit', () => {
   const id = document.querySelector('#editId').value;
+  if (id && !state.items.some(item => item.id === id && item.owner === 'user')) return;
   const data = {
     name: document.querySelector('#linkName').value.trim(), url: document.querySelector('#linkUrl').value.trim(), logo: document.querySelector('#linkLogo').value.trim(),
     collection: document.querySelector('#linkCollection').value, color: document.querySelector('#linkColor').value,
@@ -885,13 +919,13 @@ document.querySelector('#linkForm').addEventListener('submit', () => {
     notes: document.querySelector('#linkNotes').value.trim()
   };
   if (id) Object.assign(state.items.find(item => item.id === id), data);
-  else state.items.push({ id: `item-${Date.now()}`, ...data, favorite: false, shared: false, icon: initials(data.name) });
+  else state.items.push({ id: `item-${crypto.randomUUID()}`, ...data, favorite: false, shared: false, icon: initials(data.name), owner: 'user', managed: false });
   save(); render(); toast(id ? 'Link updated' : 'Link added to your launchpad');
 });
 
 document.querySelector('#collectionForm').addEventListener('submit', () => {
   const name = document.querySelector('#collectionName').value.trim();
-  state.collections.push({ id: `collection-${Date.now()}`, name, color: document.querySelector('#collectionColor').value });
+  state.collections.push({ id: `collection-${crypto.randomUUID()}`, name, color: document.querySelector('#collectionColor').value, owner: 'user' });
   save(); render(); document.querySelector('#collectionForm').reset(); toast(`${name} created`);
 });
 

@@ -29,6 +29,16 @@ Then visit `http://localhost:8080`.
 
 The coworker sharing experience is simulated locally in this first version. A production version would connect it to employee identity, a database, and real-time notifications.
 
+## Publishing and personal preferences
+
+Admin center includes setup defaults, suggested tags, editing and deleting published GBX links, and app announcements. App announcements require acknowledgement before dismissing the dialog; a pending acknowledgement also requests the browser's standard warning before leaving. Browsers cannot be forced to keep a tab open.
+
+Edit my launchpad lets users select links or entire collections, hide them, restore them, and delete only their own items. GBX and shared links can be hidden, but cannot be deleted through the personal editor. Existing sample links are classified as GBX; links created with Add link belong to the user.
+
+This remains a browser-local prototype. Publications, admin defaults, visibility, and acknowledgements are saved in localStorage, without employee identity, shared storage, or enforced administrator roles.
+
+Run the workspace regression checks with `node tests/workspace.test.cjs`.
+
 ## Deployment
 
 - GitHub: https://github.com/cturba04/GBXOne
