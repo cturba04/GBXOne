@@ -253,12 +253,12 @@ function filteredItems() {
 }
 
 function minimumCollectionHeight(itemCount, width) {
-  const tileSize = 124;
-  const tileGap = 9;
-  const contentWidth = Math.max(1, width - 24);
+  const tileSize = 132;
+  const tileGap = 12;
+  const contentWidth = Math.max(1, width - 34);
   const columns = Math.max(1, Math.min(itemCount || 1, Math.floor((contentWidth + tileGap) / (112 + tileGap))));
   const rows = Math.max(1, Math.ceil(itemCount / columns));
-  return 44 + 24 + rows * tileSize + (rows - 1) * tileGap;
+  return 56 + 36 + rows * tileSize + (rows - 1) * tileGap;
 }
 
 function snapBoardValue(value) {
@@ -270,10 +270,10 @@ function snapBoardSize(value, minimum = BOARD_GRID) {
 }
 
 function defaultCollectionLayout(itemCount, containerWidth) {
-  const tileSize = 124;
-  const tileGap = 9;
+  const tileSize = 132;
+  const tileGap = 12;
   const columns = Math.min(3, Math.max(1, itemCount));
-  const width = Math.min(containerWidth, snapBoardSize(Math.max(190, columns * tileSize + (columns - 1) * tileGap + 24)));
+  const width = Math.min(containerWidth, snapBoardSize(Math.max(240, columns * tileSize + (columns - 1) * tileGap + 34)));
   const height = snapBoardSize(minimumCollectionHeight(itemCount, width));
   return {
     x: 0,
@@ -333,6 +333,13 @@ function updateBoardCanvasHeight() {
 
 function applyBoardLayouts() {
   const sections = [...board.querySelectorAll('.collection')];
+  if (window.innerWidth <= 760) {
+    sections.forEach(section => {
+      ['left', 'top', 'width', 'height'].forEach(property => section.style.removeProperty(property));
+    });
+    board.style.minHeight = '';
+    return;
+  }
   const containerWidth = Math.max(280, board.clientWidth || 900);
   let created = false;
   let normalized = false;
@@ -344,7 +351,7 @@ function applyBoardLayouts() {
       created = true;
     }
     const savedLayout = state.collectionLayouts[id];
-    const minimumWidth = Math.min(190, containerWidth);
+    const minimumWidth = Math.min(240, containerWidth);
     const width = Math.min(snapBoardSize(Math.max(Number(savedLayout.w) || minimumWidth, minimumWidth), minimumWidth), containerWidth);
     const contentMinimumHeight = minimumCollectionHeight(section.querySelectorAll('.link-tile').length, width);
     const height = Math.min(snapBoardSize(Math.max(Number(savedLayout.h) || contentMinimumHeight, contentMinimumHeight), contentMinimumHeight), 640);
@@ -414,6 +421,7 @@ function bindCollectionBoardInteractions() {
     const resizeHandles = section.querySelectorAll('.collection-resize-handle');
 
     header.addEventListener('pointerdown', event => {
+      if (window.innerWidth <= 760) return;
       if (event.button !== 0 || event.target.closest('button')) return;
       event.preventDefault();
       const boardRect = board.getBoundingClientRect();
@@ -472,7 +480,7 @@ function bindCollectionBoardInteractions() {
       const resize = moveEvent => {
         const dx = moveEvent.clientX - start.x;
         const dy = moveEvent.clientY - start.y;
-        const minimumWidth = Math.min(190, board.clientWidth);
+        const minimumWidth = Math.min(240, board.clientWidth);
         const appCount = section.querySelectorAll('.link-tile').length;
         const right = start.left + start.width;
         const bottom = start.top + start.height;
@@ -597,6 +605,9 @@ function render() {
 function tileTemplate(item) {
   const color = COLORS[item.color] || item.color || COLORS.teal;
   const brand = brandFor(item);
+  if (state.workspaceView === 'board' && !item.logo && !BUILTIN_BRANDS[item.id]?.logo && /\.(azurewebsites|azurestaticapps)\.net$/.test(hostname(item.url))) {
+    brand.logo = '';
+  }
   const logo = brand.logo ? `<img class="logo-image" src="${escapeHtml(brand.logo)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : '';
   return `
     <article class="link-tile" draggable="true" data-id="${item.id}" style="--tile-color:${color}" tabindex="0" aria-label="${escapeHtml(item.name)}">
@@ -608,7 +619,7 @@ function tileTemplate(item) {
         </div>
       </div>
       <div class="logo-stage" data-action="open" data-id="${item.id}">
-        <span class="app-logo">${logo}<span class="logo-symbol"${brand.logo ? ' style="display:none"' : ''}>${escapeHtml(brand.symbol)}</span></span>
+        <span class="app-logo">${logo}<span class="logo-symbol${brand.symbol.length > 2 ? ' logo-monogram' : ''}"${brand.logo ? ' style="display:none"' : ''}>${escapeHtml(brand.symbol)}</span></span>
       </div>
       <div class="tile-content" data-action="open" data-id="${item.id}">
         <h4 class="tile-title">${escapeHtml(item.name)}</h4>
